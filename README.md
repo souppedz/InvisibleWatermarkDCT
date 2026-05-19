@@ -1,7 +1,6 @@
 # DCT Watermarking - Zahrah Nur A
 
 dct-watermarking adalah sebuah alat eksperimental berbasis Python untuk menyematkan watermark digital ke dalam citra (foto wajah) menggunakan domain frekuensi. Tugas ini dibuat untuk memenuhi tugas Sistem Multimedia dengan fokus utama pada pengujian robustness (ketangguhan) terhadap kompresi JPEG. 
----
 
 ## Supported Algorithms
 
