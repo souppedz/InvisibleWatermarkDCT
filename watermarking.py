@@ -103,6 +103,9 @@ def main():
     plt.xlabel("JPEG Quality Factor"); plt.ylabel("Correlation Coefficient (r)")
     plt.legend(); plt.grid(True)
     plt.savefig("outputWatermarking/analysis/analysis_graph_ara.png"); plt.close()
+    
+    ext_final = extract_dct(img_wm_bin, orig, alpha)
+    plt.imsave("outputWatermarking/rawFile/extracted_binary_visual.png", (ext_final > 0.5), cmap='gray')
 
     print("\nPROSES SELESAI!")
     print("Semua file tersimpan di folder 'outputWatermarking'.")

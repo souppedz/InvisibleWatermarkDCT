@@ -75,9 +75,8 @@ Pengujian dilakukan dengan mengompresi citra ber-watermark menggunakan berbagai 
 | Deskripsi | Gambar |
 | :--- | :--- |
 | **Hasil Ekstraksi (Visual)** | ![Ekstraksi](outputWatermarking/rawFile/extracted_binary_visual.png) |
-| **Proses Dekomposisi WM Binary** | ![Grafik](outputWatermarking/analysis/analysis_grid_binary.png) |
-| **Proses Dekomposisi WM Random** | ![Grafik](outputWatermarking/analysis/analysis_grid_random.png) |
-| **Grafik Ketangguhan WM** | ![Grafik](outputWatermarking/analysis/analysis_comparison_graph.png) |
+| **Proses Dekomposisi WM ** | ![Grafik](outputWatermarking/analysis/analysis_grid_ara.png) |
+| **Grafik Ketangguhan WM** | ![Grafik](outputWatermarking/analysis/analysis_graph_ara.png) |
 
 ## Kesimpulan Tugas
 
