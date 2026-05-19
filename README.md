@@ -1,11 +1,11 @@
-# dct-watermarking-ara
+# DCT Watermarking - Zahrah Nur A
 
-**dct-watermarking-ara** adalah sebuah alat eksperimental berbasis Python untuk menyematkan watermark digital ke dalam citra (foto wajah) menggunakan domain frekuensi. Proyek ini dibuat untuk memenuhi tugas Sistem Multimedia dengan fokus utama pada pengujian **robustness** (ketangguhan) terhadap kompresi JPEG.
+dct-watermarking adalah sebuah alat eksperimental berbasis Python untuk menyematkan watermark digital ke dalam citra (foto wajah) menggunakan domain frekuensi. Tugas ini dibuat untuk memenuhi tugas Sistem Multimedia dengan fokus utama pada pengujian **robustness** (ketangguhan) terhadap kompresi JPEG.
 ---
 
 ## Supported Algorithms
 
-Proyek ini mengimplementasikan dua jenis watermark yang berbeda untuk membandingkan kinerjanya:
+Tugas ini mengimplementasikan dua jenis watermark yang berbeda untuk membandingkan kinerjanya:
 
 * **Metode A (Binary Image):** > Membuat citra biner (hitam-putih) berukuran $32 \times 32$ yang membentuk teks **"ARA"**.
 * **Metode B (Random PN-Sequence):** > Membuat deret angka acak (*Pseudo-Noise sequence*) dengan nilai $-1$ atau $+1$.
