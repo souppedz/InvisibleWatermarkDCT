@@ -2,18 +2,14 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
+import os
 
-# Proses pembuatan WM
 def create_binary_wm(size=32):
     img = Image.new("L", (size, size), 0)
     draw = ImageDraw.Draw(img)
     draw.text((2, 10), "ARA", fill=255) 
     return (np.array(img) > 127).astype(np.float32)
 
-def create_random_wm(size=32):
-    return np.random.default_rng(42).choice([-1.0, 1.0], size=(size, size)).astype(np.float32)
-
-# Proses DCT
 def embed_dct(img_bgr, wm, alpha=35.0):
     ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
     Y = ycrcb[:, :, 0].astype(np.float32)
@@ -23,7 +19,7 @@ def embed_dct(img_bgr, wm, alpha=35.0):
         for c in range(0, Y.shape[1]-7, 8):
             if idx < len(wm_f):
                 block = cv2.dct(Y[r:r+8, c:c+8].copy())
-                block[3, 3] += alpha * wm_f[idx] 
+                block[3, 3] += alpha * wm_f[idx]
                 Y[r:r+8, c:c+8] = cv2.idct(block)
                 idx += 1
     ycrcb[:, :, 0] = np.clip(Y, 0, 255).astype(np.uint8)
@@ -46,57 +42,70 @@ def simulate_jpeg(img, q):
     return cv2.imdecode(buf, 1)
 
 def main():
+    paths = ["outputWatermarking/rawFile", "outputWatermarking/analysis", "outputWatermarking/process"]
+    for p in paths: os.makedirs(p, exist_ok=True)
+
     orig = cv2.imread("foto.jpeg")
     if orig is None: print("foto.jpeg not found!"); return
     orig = cv2.resize(orig, (256, 256))
     alpha = 35.0
     
+    grid_vis = orig.copy()
+    for i in range(0, 256, 8):
+        cv2.line(grid_vis, (i, 0), (i, 256), (255, 0, 0), 1)
+        cv2.line(grid_vis, (0, i), (256, i), (255, 0, 0), 1)
+    cv2.imwrite("outputWatermarking/process/step1_segmentation.png", grid_vis)
+
+    ycrcb_vis = cv2.cvtColor(orig, cv2.COLOR_BGR2YCrCb)
+    cv2.imwrite("outputWatermarking/process/step2_y_channel.png", ycrcb_vis[:,:,0])
+
+    sample_block = ycrcb_vis[0:8, 0:8, 0].astype(np.float32)
+    dct_vis = np.log(np.abs(cv2.dct(sample_block)) + 1)
+    plt.imshow(dct_vis, cmap='viridis'); plt.axis('off')
+    plt.savefig("outputWatermarking/process/step3_dct_visual.png"); plt.close()
+
     wm_bin = create_binary_wm()
-    wm_rnd = create_random_wm()
-
     img_wm_bin = embed_dct(orig, wm_bin, alpha)
-    img_wm_rnd = embed_dct(orig, wm_rnd, alpha)
-    cv2.imwrite("outputWatermarking/rawFile/watermarked_binary_ara.jpg", img_wm_bin)
-    cv2.imwrite("outputWatermarking/rawFile/watermarked_random.jpg", img_wm_rnd)
-
-    ext_bin = extract_dct(simulate_jpeg(img_wm_bin, 80), orig, alpha)
-    ext_rnd = extract_dct(simulate_jpeg(img_wm_rnd, 80), orig, alpha)
     
-    plt.imsave("outputWatermarking/rawFile/extracted_binary_visual.png", (ext_bin > 0.5), cmap='gray')
-    plt.imsave("outputWatermarking/rawFile/extracted_random_visual.png", ext_rnd, cmap='gray')
+    diff = np.abs(img_wm_bin.astype(np.float32) - orig.astype(np.float32))
+    diff_vis = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    cv2.imwrite("outputWatermarking/process/step4_embedding_residual.png", diff_vis)
+
+    sample_y = cv2.cvtColor(img_wm_bin, cv2.COLOR_BGR2YCrCb)[:,:,0]
+    cv2.imwrite("outputWatermarking/process/step5_idct_channel_y.png", sample_y)
+
+    cv2.imwrite("outputWatermarking/process/step6_reconstruction_final.jpg", img_wm_bin)
+    cv2.imwrite("outputWatermarking/rawFile/watermarked_ara.jpg", img_wm_bin)
 
     qf_test = [100, 70, 40, 10]
+    fig, axes = plt.subplots(1, 4, figsize=(15, 4))
+    fig.suptitle("Analisis Dekomposisi Watermark ARA")
     
-    for name, wm_o, wm_i in [("binary", wm_bin, img_wm_bin), ("random", wm_rnd, img_wm_rnd)]:
-        fig, axes = plt.subplots(1, 4, figsize=(15, 4))
-        fig.suptitle(f"Analisis Proses Dekomposisi Watermark {name.upper()} per Quality Factor")
-        for i, q in enumerate(qf_test):
-            decoded = simulate_jpeg(wm_i, q)
-            ex = extract_dct(decoded, orig, alpha)
-            disp = (ex > 0.5) if name == "binary" else ex
-            axes[i].imshow(disp, cmap='gray')
-            axes[i].set_title(f"QF {q}")
-            axes[i].axis('off')
-        plt.savefig(f"outputWatermarking/analysis/analysis_grid_{name}.png" if name=="binary" else f"outputWatermarking/analysis/analysis_grid_{name}.png")
-
     qfs = range(100, 5, -5)
-    c_b, c_r = [], []
+    correlations = []
+
+    for i, q in enumerate(qf_test):
+        decoded = simulate_jpeg(img_wm_bin, q)
+        ex = extract_dct(decoded, orig, alpha)
+        axes[i].imshow(ex > 0.5, cmap='gray')
+        axes[i].set_title(f"QF {q}"); axes[i].axis('off')
+    plt.savefig("outputWatermarking/analysis/analysis_grid_ara.png"); plt.close()
+
     for q in qfs:
-        e_b = extract_dct(simulate_jpeg(img_wm_bin, q), orig, alpha)
-        e_r = extract_dct(simulate_jpeg(img_wm_rnd, q), orig, alpha)
-        c_b.append(np.corrcoef(wm_bin.flatten(), e_b.flatten())[0,1])
-        c_r.append(np.corrcoef(wm_rnd.flatten(), e_r.flatten())[0,1])
+        decoded = simulate_jpeg(img_wm_bin, q)
+        ex = extract_dct(decoded, orig, alpha)
+        correlations.append(np.corrcoef(wm_bin.flatten(), ex.flatten())[0,1])
 
     plt.figure(figsize=(10, 5))
-    plt.plot(qfs, c_b, 'b-o', label='Binary ARA')
-    plt.plot(qfs, c_r, 'r-s', label='Random Noise')
+    plt.plot(qfs, correlations, 'b-o', label='Watermark ARA')
     plt.gca().invert_xaxis()
-    plt.title("Perbandingan Robustness Watermark: Binary vs Random")
+    plt.title("Robustness Analysis: ARA Watermark")
     plt.xlabel("JPEG Quality Factor"); plt.ylabel("Correlation Coefficient (r)")
     plt.legend(); plt.grid(True)
-    plt.savefig("outputWatermarking/analysis/analysis_comparison_graph.png")
+    plt.savefig("outputWatermarking/analysis/analysis_graph_ara.png"); plt.close()
 
-    print("SELESAI PROSES WATERMARMKING!")
+    print("\nPROSES SELESAI!")
+    print("Semua file tersimpan di folder 'outputWatermarking'.")
 
 if __name__ == "__main__":
     main()
